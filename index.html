@@ -1,0 +1,328 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>The Tic-Tac-Toe Playbook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: same book as the WallRush Playbook — topic rail on the left, one rule per screen, prev/next pager — dressed as pencil on squared notebook paper */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --rail:#e6eaee; --ink:#1c2228; --muted:#5a6672; --line:#cdd5dc;
+  --accent:#d1453b; --accent-2:#2f5fd0; --x:#d1453b; --o:#2f5fd0; --win:#1f9a5c; --hot:#c98a00;
+  --cell:#eef1f4; --grid:#3b4550; --callout:#fbe7e4;
+  --f-display:"Bricolage Grotesque","Arial Black",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#12161a; --panel:#1a2026; --rail:#161b20; --ink:#e9edf1; --muted:#9aa6b2; --line:#2c353e;
+  --accent:#ff7366; --accent-2:#7fa2ff; --x:#ff7366; --o:#7fa2ff; --win:#4fd492; --hot:#f2b84b;
+  --cell:#20272e; --grid:#b4bec8; --callout:#3a2120; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#12161a; --panel:#1a2026; --rail:#161b20; --ink:#e9edf1; --muted:#9aa6b2; --line:#2c353e;
+  --accent:#ff7366; --accent-2:#7fa2ff; --x:#ff7366; --o:#7fa2ff; --win:#4fd492; --hot:#f2b84b;
+  --cell:#20272e; --grid:#b4bec8; --callout:#3a2120; color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:18px;line-height:1.6}
+.app{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100%}
+
+.rail{background:var(--rail);border-right:1px solid var(--line);position:sticky;top:0;height:100vh;overflow-y:auto;
+  padding-block:28px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:20px;display:flex;flex-direction:column;gap:24px}
+.brand{display:flex;flex-direction:column;gap:4px}
+.brand .mark{font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1.02;letter-spacing:-.02em}
+.brand .mark .x{color:var(--x)} .brand .mark .o{color:var(--o)}
+.brand .sub{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.toc{display:flex;flex-direction:column;gap:18px}
+.toc h3{font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.toc button{all:unset;cursor:pointer;display:grid;grid-template-columns:28px 1fr;align-items:baseline;gap:6px;width:100%;
+  padding:8px 10px;border-radius:8px;font-weight:700;font-size:15px;line-height:1.3;color:var(--ink)}
+.toc button .n{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.toc button:hover{background:var(--panel)}
+.toc button[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.toc button[aria-current="page"] .n{color:var(--bg)}
+.toc button:focus-visible,.pager button:focus-visible,.topics-btn:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+
+main{min-width:0;display:flex;flex-direction:column;padding-block:0 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.progress{position:sticky;top:env(safe-area-inset-top,0px);height:6px;background:var(--line);margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px))) calc(-1*max(16px,env(safe-area-inset-right,0px)));z-index:5}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .35s ease}
+.topbar{display:none}
+.page{width:100%;max-width:820px;margin:0 auto;padding-top:56px;display:flex;flex-direction:column;gap:28px}
+.eyebrow{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);display:flex;gap:12px;flex-wrap:wrap}
+.eyebrow .count{color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(2.2rem,5.2vw,3.8rem);line-height:1.04;letter-spacing:-.025em;margin:0;text-wrap:balance}
+.rule{font-family:var(--f-display);font-weight:600;font-size:clamp(1.15rem,2.2vw,1.5rem);line-height:1.35;margin:0;
+  background:var(--callout);border-radius:14px;padding:22px 24px;text-wrap:balance}
+.body{display:flex;flex-direction:column;gap:18px;max-width:66ch}
+.body p{margin:0}
+.body ul,.body ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:10px}
+.body li::marker{color:var(--accent);font-weight:700}
+.body h2{font-family:var(--f-display);font-weight:800;font-size:1.35rem;margin:10px 0 0;letter-spacing:-.01em}
+.tag{font-family:var(--f-mono);font-size:.85em;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--cell)}
+.tag.x{color:var(--x)} .tag.o{color:var(--o)} .tag.win{color:var(--win)} .tag.hot{color:var(--hot)}
+.figs{display:flex;flex-wrap:wrap;gap:16px}
+figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;flex:1 1 240px;max-width:340px;min-width:0}
+figure svg{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
+figcaption{font-size:15px;color:var(--muted);line-height:1.45}
+.versus{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.versus div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.versus .big{font-family:var(--f-display);font-weight:800;font-size:2.6rem;line-height:1}
+.versus .good .big{color:var(--win)} .versus .mid .big{color:var(--o)} .versus .meh .big{color:var(--muted)}
+.versus .lbl{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.versus p{margin:0;font-size:16px}
+.pager{max-width:820px;width:100%;margin:56px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pager button{all:unset;cursor:pointer;border:2px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:4px;background:var(--panel);min-width:0}
+.pager button:hover{border-color:var(--accent)}
+.pager .dir{font-family:var(--f-mono);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.pager .t{font-family:var(--f-display);font-weight:800;font-size:1.05rem;line-height:1.25}
+.pager .next{text-align:right;grid-column:2}
+.pager button[disabled]{visibility:hidden}
+.keys{max-width:820px;width:100%;margin:14px auto 0;font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:center}
+kbd{font-family:var(--f-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px}
+.page.enter{animation:in .35s ease}
+@keyframes in{from{transform:translateY(8px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.page.enter{animation:none}.progress i{transition:none}}
+
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:fixed;inset:0 auto 0 0;width:min(320px,86vw);height:100%;z-index:20;transform:translateX(-102%);transition:transform .25s ease;
+    padding-top:calc(24px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));box-shadow:0 0 40px rgba(0,0,0,.25)}
+  .app.open .rail{transform:none}
+  .scrim{position:fixed;inset:0;background:rgba(10,14,18,.45);z-index:15}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px}
+  .topbar .mark{font-family:var(--f-display);font-weight:800;font-size:19px}
+  .topbar .mark .x{color:var(--x)} .topbar .mark .o{color:var(--o)}
+  .topics-btn{all:unset;cursor:pointer;font-weight:700;font-size:15px;border:2px solid var(--line);border-radius:10px;padding:6px 14px;background:var(--panel)}
+  .page{padding-top:28px}
+  body{font-size:17px}
+  .keys{display:none}
+}
+@media (max-width:480px){ .versus,.pager{grid-template-columns:minmax(0,1fr)} .pager .next{grid-column:1} figure{max-width:none} }
+</style>
+
+<div class="app" id="app">
+  <aside class="rail" id="rail" aria-label="Topics">
+    <div class="brand"><div class="mark"><span class="x">Tic</span>-Tac-<span class="o">Toe</span><br>Playbook</div><div class="sub">By Annus · 3×3 board</div></div>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+  <main>
+    <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+    <div class="topbar"><div class="mark"><span class="x">Tic</span>-Tac-<span class="o">Toe</span> Playbook</div><button class="topics-btn" id="topicsBtn" aria-expanded="false" aria-controls="rail">Topics</button></div>
+    <article class="page" id="page" aria-live="polite"></article>
+    <div class="pager">
+      <button class="prev" id="prev"><span class="dir">← Previous</span><span class="t" id="prevT"></span></button>
+      <button class="next" id="next"><span class="dir">Next →</span><span class="t" id="nextT"></span></button>
+    </div>
+    <div class="keys">Use <kbd>←</kbd> <kbd>→</kbd> to turn pages</div>
+  </main>
+</div>
+
+<script>
+/* ---------- tiny board renderer ----------
+   moves: [r,c,'X'|'O',n?]   n = move number shown small in the corner
+   hot:   [r,c,label,colorVar]  highlighted empty squares
+   line:  [[r1,c1],[r2,c2],colorVar]  winning / threat line */
+const S=70, P=14;
+function board(o){
+  const w=3*S+P*2, ctr=(r,c)=>[P+c*S+S/2,P+r*S+S/2];
+  const grid=[1,2].map(i=>`<line x1="${P+i*S}" y1="${P+6}" x2="${P+i*S}" y2="${P+3*S-6}" stroke="var(--grid)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="${P+6}" y1="${P+i*S}" x2="${P+3*S-6}" y2="${P+i*S}" stroke="var(--grid)" stroke-width="4" stroke-linecap="round"/>`).join('');
+  const hot=(o.hot||[]).map(([r,c,lbl,col])=>{const[x,y]=ctr(r,c);
+    return `<circle cx="${x}" cy="${y}" r="24" fill="none" stroke="var(${col||'--hot'})" stroke-width="3" stroke-dasharray="5 5"/>
+    <text x="${x}" y="${y+6}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="17" fill="var(${col||'--hot'})">${lbl}</text>`}).join('');
+  const marks=(o.moves||[]).map(([r,c,m,n])=>{const[x,y]=ctr(r,c),d=18;
+    const g=m==='X'
+      ?`<path d="M${x-d} ${y-d}L${x+d} ${y+d}M${x+d} ${y-d}L${x-d} ${y+d}" stroke="var(--x)" stroke-width="7" stroke-linecap="round" fill="none"/>`
+      :`<circle cx="${x}" cy="${y}" r="${d+2}" stroke="var(--o)" stroke-width="7" fill="none"/>`;
+    const num=n?`<text x="${P+c*S+9}" y="${P+r*S+17}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="12" fill="var(--muted)">${n}</text>`:'';
+    return g+num}).join('');
+  const line=o.line?(()=>{const[a,b,col]=o.line,[x1,y1]=ctr(...a),[x2,y2]=ctr(...b);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(${col||'--win'})" stroke-width="6" stroke-linecap="round" opacity=".75"/>`})():'';
+  return `<svg viewBox="0 0 ${w} ${w}" role="img" aria-label="${o.label}"><rect width="${w}" height="${w}" fill="none"/>${grid}${hot}${marks}${line}</svg>`;
+}
+const fig=(o,cap)=>({svg:board(o),cap});
+
+/* ---------- content ---------- */
+const parts=["Basics","Core principles","Opening as X","Defending as O","Midgame","Common mistakes"];
+const pages=[
+{id:"intro",part:0,title:"How Tic-Tac-Toe works",
+ rule:"Three in a row wins. With perfect play from both sides, every game is a draw.",
+ body:`<p>Two players take turns marking a 3×3 grid. <span class="tag x">X</span> always moves first, <span class="tag o">O</span> second. Get three of your marks in a line, across, down or diagonally, and you win.</p>
+ <ol><li>There are <strong>8 lines</strong> in total: 3 rows, 3 columns and 2 diagonals.</li>
+ <li>The game lasts at most <strong>9 moves</strong>. X gets 5 of them, O gets 4.</li>
+ <li>If the grid fills up with no line, it's a draw.</li></ol>
+ <h2>What that means for you</h2>
+ <p>Nobody can force a win against a player who makes no mistakes. So the real game is about two things: never making the mistake yourself, and setting traps so your opponent makes one.</p>
+ <p>Everything in this playbook comes back to one idea: <strong>make two threats at once</strong>, and never let your opponent do it to you.</p>`,
+ figs:[fig({label:"A finished winning game",moves:[[0,0,'X',1],[1,1,'O',2],[2,2,'X',3],[0,1,'O',4],[2,1,'X',5],[2,0,'O',6],[0,2,'X',7],[1,2,'O',8],[1,0,'X',9]]},
+  `A drawn game. Small numbers show move order. Every line is blocked by the end.`)]},
+
+{id:"priority",part:1,n:1,title:"Win first, block second",
+ rule:"Before anything else, look for a move that wins. If there isn't one, look for a move that stops them winning.",
+ body:`<p>Most lost games come from skipping this check. Run it every single turn, in this order:</p>
+ <ol><li><strong>Can I win right now?</strong> Two of yours in a line with the third square empty. Take it.</li>
+ <li><strong>Can they win next turn?</strong> Two of theirs in a line with the third empty. Block it.</li>
+ <li>Only then think about strategy.</li></ol>
+ <p>A block is never optional. A clever plan doesn't matter if you lose on the next move.</p>`,
+ figs:[fig({label:"O must block",moves:[[0,0,'X'],[1,1,'O'],[0,1,'X']],hot:[[0,2,'!']]},
+  `<span class="tag x">X</span> has two in the top row. <span class="tag o">O</span> has no win available, so the only move is the block at <span class="tag hot">!</span>.`)]},
+
+{id:"fork",part:1,n:2,title:"The fork",
+ rule:"Create two threats with one move. Your opponent can only block one of them.",
+ body:`<p>A <strong>fork</strong> is a move that makes two separate lines where you have two marks and the third square is open. They block one, you finish the other.</p>
+ <p>This is the only way to beat a player who always blocks. Every win in this playbook is a fork in the end.</p>
+ <h2>Spotting forks</h2>
+ <p>Look for an empty square where two of your lines cross, and each of those lines already has one of your marks and nothing of theirs. That square is a fork square.</p>
+ <p>Do the same check for your opponent. If they have a fork square, you have to deal with it now (see <em>Block the fork early</em>).</p>`,
+ figs:[fig({label:"X forks",moves:[[0,0,'X',1],[0,1,'O',2],[1,1,'X',3],[2,2,'O',4],[2,0,'X',5]],hot:[[1,0,'1'],[0,2,'2']]},
+  `<span class="tag x">X</span>'s move 5 threatens the left column <span class="tag hot">1</span> and the diagonal <span class="tag hot">2</span> at once. O can only stop one.`)]},
+
+{id:"squares",part:1,n:3,title:"Not all squares are equal",
+ rule:"Center beats corners, corners beat edges. Count the lines each square belongs to.",
+ body:`<p>A square is only as strong as the number of lines running through it. More lines means more ways to build threats and more of your opponent's lines blocked.</p>
+ <p>When you have no win, no block and no fork to play, take the strongest open square.</p>`,
+ extra:`<div class="versus"><div class="good"><span class="lbl">Center</span><span class="big">4</span><p>Row, column and both diagonals.</p></div>
+ <div class="mid"><span class="lbl">Corner</span><span class="big">3</span><p>Row, column and one diagonal.</p></div>
+ <div class="meh"><span class="lbl">Edge</span><span class="big">2</span><p>Just a row and a column.</p></div></div>`,
+ figs:[fig({label:"Line counts per square",hot:[[0,0,'3','--o'],[0,1,'2','--muted'],[0,2,'3','--o'],[1,0,'2','--muted'],[1,1,'4','--win'],[1,2,'2','--muted'],[2,0,'3','--o'],[2,1,'2','--muted'],[2,2,'3','--o']]},
+  `How many of the 8 lines pass through each square.`)]},
+
+{id:"open-corner",part:2,title:"Open in a corner",
+ rule:"As X, start in a corner. It sets the most traps for O.",
+ body:`<p>Center and corner openings both guarantee you at least a draw. The difference is how many ways O can go wrong.</p>
+ <ul><li>After a <strong>corner</strong> opening, O has exactly one safe reply: the center. Any other square loses by force.</li>
+ <li>After a <strong>center</strong> opening, O is safe in any corner. Only the edges lose.</li></ul>
+ <p>Against casual players, the corner wins far more games. Against a strong player, it still draws.</p>
+ <h2>Avoid opening on an edge</h2>
+ <p>An edge opening isn't a loss, but it gives O the most safe replies and you the fewest traps.</p>`,
+ figs:[fig({label:"Corner opening",moves:[[0,0,'X',1]],hot:[[1,1,'✓','--win']]},
+  `After <span class="tag x">X</span> takes a corner, the center <span class="tag win">✓</span> is O's only reply that doesn't lose.`)]},
+
+{id:"punish-edge",part:2,title:"Punish an edge reply",
+ rule:"O answered your corner with an edge? Take the center, then fork.",
+ body:`<p>If O doesn't take the center, it's yours. From there the win is forced:</p>
+ <ol><li><strong>Move 3:</strong> take the center. You now threaten the opposite corner along the diagonal.</li>
+ <li><strong>Move 4:</strong> O has to block that corner.</li>
+ <li><strong>Move 5:</strong> take the corner that lines up with both your corner and the center. That's a fork.</li></ol>`,
+ figs:[fig({label:"Punishing an edge reply",moves:[[0,0,'X',1],[0,1,'O',2],[1,1,'X',3],[2,2,'O',4],[2,0,'X',5]],hot:[[1,0,'1'],[0,2,'2']]},
+  `O's move 2 on the edge loses. X's move 5 threatens <span class="tag hot">1</span> and <span class="tag hot">2</span>.`)]},
+
+{id:"punish-corner",part:2,title:"Punish a corner reply",
+ rule:"O answered your corner with another corner? Take a third corner and fork.",
+ body:`<p>A corner reply looks reasonable, but it leaves the center open and loses just as surely.</p>
+ <ol><li><strong>Move 3:</strong> take a corner that makes a line with your first mark, along an edge O hasn't touched. That's a threat.</li>
+ <li><strong>Move 4:</strong> O blocks the edge square between them.</li>
+ <li><strong>Move 5:</strong> take the last free corner that lines up with both of yours. You threaten a second edge and the diagonal through the center.</li></ol>
+ <p>This works whether O took the adjacent corner or the opposite one. The idea is the same: three corners make forks.</p>`,
+ figs:[fig({label:"Punishing an opposite-corner reply",moves:[[0,0,'X',1],[2,2,'O',2],[2,0,'X',3],[1,0,'O',4],[0,2,'X',5]],hot:[[0,1,'1'],[1,1,'2']]},
+  `O went to the opposite corner. X's move 5 threatens the top row <span class="tag hot">1</span> and the diagonal <span class="tag hot">2</span>.`)]},
+
+{id:"answer-corner",part:3,title:"Answer a corner with the center",
+ rule:"When X opens in a corner, take the center. Every other reply loses.",
+ body:`<p>The last two pages show why. Without the center, X gets to build a fork through it.</p>
+ <p>Taking the center blocks four lines at once, including both diagonals X wants to use.</p>`,
+ figs:[fig({label:"Correct reply to a corner",moves:[[0,0,'X',1],[1,1,'O',2]]},
+  `The only safe answer. From here, O can hold the draw.`)]},
+
+{id:"edge-not-corner",part:3,title:"The opposite-corner trap",
+ rule:"X holds two opposite corners and you have the center? Play an edge, not a corner.",
+ body:`<p>This is the trap that catches most O players. After corner, center, opposite corner, the natural move is another corner. It loses.</p>
+ <h2>Why the corner loses</h2>
+ <p>Your corner creates a threat, X blocks it in the last corner, and that block is a fork: X now threatens an edge on two sides.</p>
+ <h2>Why the edge holds</h2>
+ <p>An edge move makes a threat through the center. X has to block on the far edge, and from then on every move is a forced block for both sides. It ends in a draw.</p>`,
+ figs:[
+  fig({label:"Wrong: corner",moves:[[0,0,'X',1],[1,1,'O',2],[2,2,'X',3],[0,2,'O',4],[2,0,'X',5]],hot:[[1,0,'1'],[2,1,'2']]},
+   `<strong>Wrong.</strong> O's corner (4) forces X to 5, which forks <span class="tag hot">1</span> and <span class="tag hot">2</span>.`),
+  fig({label:"Right: edge",moves:[[0,0,'X',1],[1,1,'O',2],[2,2,'X',3],[0,1,'O',4]],hot:[[2,1,'!']]},
+   `<strong>Right.</strong> O's edge (4) threatens the middle column. X must block at <span class="tag hot">!</span> and the game heads for a draw.`)]},
+
+{id:"answer-center",part:3,title:"Answer the center with a corner",
+ rule:"When X opens in the center, take a corner. Edges lose.",
+ body:`<p>After an edge reply, X takes a corner, forcing you into the opposite corner, and then takes a second corner for a fork.</p>
+ <p>After a corner reply, there's no fork for X to reach. Keep blocking and the game is a draw.</p>
+ <h2>One more thing to watch</h2>
+ <p>If X then takes the corner opposite yours, take another corner, not an edge. It's the reverse of the trap on the previous page, so check which squares are actually being threatened instead of playing by habit.</p>`,
+ figs:[
+  fig({label:"Wrong: edge reply to center",moves:[[1,1,'X',1],[0,1,'O',2],[0,0,'X',3],[2,2,'O',4],[2,0,'X',5]],hot:[[1,0,'1'],[0,2,'2']]},
+   `<strong>Wrong.</strong> The edge (2) lets X fork on move 5.`),
+  fig({label:"Right: corner reply to center",moves:[[1,1,'X',1],[0,0,'O',2]]},
+   `<strong>Right.</strong> A corner. X has no forced win from here.`)]},
+
+{id:"force",part:4,title:"Steer them with threats",
+ rule:"Every threat you make dictates their next move. Pick threats that push them where you want.",
+ body:`<p>When you make two in a row, your opponent has no choice. Their next mark goes in the blocking square. You decide where they play.</p>
+ <p>Use that. Before making a threat, look at the square they'll be forced into and ask:</p>
+ <ul><li>Does their forced block give <strong>them</strong> a new threat? If so, you'll have to answer it and lose your tempo.</li>
+ <li>Does it leave <strong>your</strong> fork square open? If so, the threat is a setup for your next move.</li></ul>
+ <p>A good threat moves you forward and lands them somewhere harmless.</p>`},
+
+{id:"block-fork",part:4,title:"Block the fork early",
+ rule:"If your opponent has a fork square, take it, or force them elsewhere with a threat of your own.",
+ body:`<p>Once a fork lands, it's too late. You have to see it a move before.</p>
+ <ol><li><strong>One fork square:</strong> put your mark on it.</li>
+ <li><strong>Two or more fork squares:</strong> you can't cover them all. Instead, make two in a row so they must block, and make sure that block doesn't land on one of their fork squares or create a new one.</li></ol>
+ <p>This second case is exactly what happens in <em>The opposite-corner trap</em>. The edge move works because it forces X into a square that gives nothing back.</p>`},
+
+{id:"mistake-block",part:5,title:"Chasing your plan and missing their threat",
+ rule:"Check for their two-in-a-row before you play your own idea.",
+ body:`<p>The most common loss isn't a clever fork. It's a player so focused on their own setup that they don't see a plain line about to finish.</p>
+ <p>Go back to the order in <em>Win first, block second</em>, every turn, even when the game feels quiet.</p>`},
+
+{id:"mistake-edge",part:5,title:"Taking edges too early",
+ rule:"Don't play an edge unless it wins, blocks, or forces a harmless reply.",
+ body:`<p>Edges sit on only two lines. Early in the game they leave the stronger squares for your opponent and invite forks.</p>
+ <p>The one good edge move in this playbook, in <em>The opposite-corner trap</em>, is played because it makes a threat, not for its own sake.</p>`},
+
+{id:"mistake-habit",part:5,title:"Playing by habit",
+ rule:"Never play a move just because it worked last game. Recount the threats each turn.",
+ body:`<p>"Take a corner" is good advice at the start and wrong in the opposite-corner trap. "Take an edge" saves that trap and loses against a center opening.</p>
+ <p>The rules in this playbook are shortcuts. When you're unsure, fall back on the basics: can anyone win, can anyone fork, and which square counts the most lines.</p>`}
+];
+
+/* ---------- render ---------- */
+const $=id=>document.getElementById(id);
+let cur=0;
+function buildToc(){
+  $('toc').innerHTML=parts.map((name,pi)=>{
+    const items=pages.map((p,i)=>({p,i})).filter(x=>x.p.part===pi);
+    return `<div><h3>${name}</h3><ol>${items.map(({p,i})=>`<li><button data-i="${i}"><span class="n">${String(i+1).padStart(2,'0')}</span><span>${p.title}</span></button></li>`).join('')}</ol></div>`;
+  }).join('');
+  $('toc').addEventListener('click',e=>{const b=e.target.closest('button');if(b){go(+b.dataset.i);closeRail();}});
+}
+function go(i,push=true){
+  cur=Math.max(0,Math.min(pages.length-1,i));
+  const p=pages[cur], el=$('page');
+  const label=parts[p.part]+(p.n?` · Principle ${p.n}`:'');
+  const figs=p.figs?`<div class="figs">${p.figs.map(f=>`<figure>${f.svg}<figcaption>${f.cap}</figcaption></figure>`).join('')}</div>`:'';
+  el.innerHTML=`<div class="eyebrow"><span>${label}</span><span class="count">${cur+1} / ${pages.length}</span></div>
+    <h1>${p.title}</h1><p class="rule">${p.rule}</p><div class="body">${p.body}</div>${p.extra||''}${figs}`;
+  el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter');
+  document.querySelectorAll('.toc button').forEach(b=>{ if(+b.dataset.i===cur) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  const pv=pages[cur-1], nx=pages[cur+1];
+  $('prev').disabled=!pv; $('prevT').textContent=pv?pv.title:'';
+  $('next').disabled=!nx; $('nextT').textContent=nx?nx.title:'';
+  $('bar').style.width=((cur+1)/pages.length*100)+'%';
+  if(push){ try{history.replaceState(null,'','#'+p.id)}catch(e){} window.scrollTo({top:0}); }
+  try{localStorage.setItem('ttt-page',p.id)}catch(e){}
+}
+function closeRail(){$('app').classList.remove('open');$('scrim').hidden=true;$('topicsBtn').setAttribute('aria-expanded','false')}
+$('topicsBtn').onclick=()=>{const o=$('app').classList.toggle('open');$('scrim').hidden=!o;$('topicsBtn').setAttribute('aria-expanded',String(o))};
+$('scrim').onclick=closeRail;
+$('prev').onclick=()=>go(cur-1); $('next').onclick=()=>go(cur+1);
+document.addEventListener('keydown',e=>{
+  if(e.target.closest('input,textarea'))return;
+  if(e.key==='ArrowRight')go(cur+1); else if(e.key==='ArrowLeft')go(cur-1); else if(e.key==='Escape')closeRail();
+});
+buildToc();
+let start=0;
+const fromHash=pages.findIndex(p=>'#'+p.id===location.hash);
+if(fromHash>=0)start=fromHash; else { try{const s=localStorage.getItem('ttt-page');const k=pages.findIndex(p=>p.id===s);if(k>=0)start=k}catch(e){} }
+go(start,false);
+</script>
+
+</body></html>
